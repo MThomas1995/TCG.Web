@@ -2,6 +2,7 @@
 
 import Image from "next/image"
 import { useRef, useState, useEffect } from "react"
+import Tilt from "react-parallax-tilt"
 
 interface TiltCardProps {
     src: string
@@ -9,33 +10,36 @@ interface TiltCardProps {
 }
 
 export const TiltCard = ({ src, alt }: TiltCardProps) => {
-    const cardRef  = useRef<HTMLDivElement>(null)
-    const foilRef  = useRef<HTMLDivElement>(null)
-    const sheenRef = useRef<HTMLDivElement>(null)
+    const foilRef     = useRef<HTMLDivElement>(null)
+    const sheenRef    = useRef<HTMLDivElement>(null)
+    const isHovering  = useRef(false)
 
     const [foilEnabled,  setFoilEnabled]  = useState(true)
     const [sheenEnabled, setSheenEnabled] = useState(true)
 
-    const applyTilt = (clientX: number, clientY: number) => {
-        const card  = cardRef.current
+    const resetOverlays = () => {
+        if (foilRef.current)  foilRef.current.style.opacity  = '0'
+        if (sheenRef.current) sheenRef.current.style.opacity = '0'
+    }
+
+    // Reset overlays whenever toggles change while not hovering
+    useEffect(() => {
+        if (!isHovering.current) resetOverlays()
+    }, [foilEnabled, sheenEnabled])
+
+    const handleMove = ({ tiltAngleY, tiltAngleXPercentage, tiltAngleYPercentage }: { tiltAngleY: number, tiltAngleXPercentage: number, tiltAngleYPercentage: number }) => {
         const foil  = foilRef.current
         const sheen = sheenRef.current
-        if (!card || !foil || !sheen) return
+        if (!foil || !sheen) return
 
-        const rect    = card.getBoundingClientRect()
-        const x       = clientX - rect.left
-        const y       = clientY - rect.top
-        const xPct    = (x / rect.width) * 100
-        const yPct    = (y / rect.height) * 100
-        const rotateY = ((x / rect.width)  - 0.5) * 24
-        const rotateX = ((y / rect.height) - 0.5) * -24
-
-        card.style.transform = `perspective(600px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale(1.03)`
+        // Convert -100..100 percentage to 0..100 for positioning
+        const xPct = (tiltAngleYPercentage + 100) / 2
+        const yPct = (tiltAngleXPercentage + 100) / 2
 
         if (foilEnabled) {
             const hue = xPct * 2.4
             foil.style.background = `linear-gradient(
-                ${105 + rotateY * 4}deg,
+                ${105 + tiltAngleY * 4}deg,
                 hsla(${hue},       100%, 65%, 0.25) 0%,
                 hsla(${hue + 60},  100%, 65%, 0.2)  25%,
                 hsla(${hue + 120}, 100%, 65%, 0.25) 50%,
@@ -51,52 +55,31 @@ export const TiltCard = ({ src, alt }: TiltCardProps) => {
         }
     }
 
-    const resetTilt = () => {
-        const card  = cardRef.current
-        const foil  = foilRef.current
-        const sheen = sheenRef.current
-        if (!card || !foil || !sheen) return
-
-        card.style.transform = 'perspective(600px) rotateX(0deg) rotateY(0deg) scale(1)'
-        foil.style.opacity   = '0'
-        sheen.style.opacity  = '0'
+    const handleLeave = () => {
+        isHovering.current = false
+        resetOverlays()
     }
 
-    const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => applyTilt(e.clientX, e.clientY)
-
-    // React touch events are passive by default — preventDefault() is ignored, so the page scrolls.
-    // We attach the touch listener directly to the DOM with { passive: false } to fix this.
-    useEffect(() => {
-        const el = cardRef.current
-        if (!el) return
-
-        const onTouchMove = (e: TouchEvent) => {
-            e.preventDefault()
-            applyTilt(e.touches[0].clientX, e.touches[0].clientY)
-        }
-
-        const onTouchEnd = () => resetTilt()
-
-        el.addEventListener('touchmove', onTouchMove, { passive: false })
-        el.addEventListener('touchend', onTouchEnd)
-
-        return () => {
-            el.removeEventListener('touchmove', onTouchMove)
-            el.removeEventListener('touchend', onTouchEnd)
-        }
-    }, [foilEnabled, sheenEnabled])
+    const handleEnter = () => {
+        isHovering.current = true
+    }
 
     return (
         <div
-            onMouseMove={handleMouseMove}
-            onMouseLeave={resetTilt}
             style={{ animation: 'float 5s ease-in-out infinite' }}
+            onMouseLeave={handleLeave}
+            onTouchEnd={handleLeave}
         >
-            <div
-                ref={cardRef}
-                className="relative rounded-2xl overflow-hidden shadow-2xl ring-1 ring-white/15"
-                style={{ transition: 'transform 0.15s ease', willChange: 'transform' }}
-            >
+        <Tilt
+            tiltMaxAngleX={12}
+            tiltMaxAngleY={12}
+            scale={1.03}
+            transitionSpeed={1000}
+            onEnter={handleEnter}
+            onMove={handleMove}
+            onLeave={handleLeave}
+        >
+            <div className="relative rounded-2xl overflow-hidden shadow-2xl ring-1 ring-white/15" style={{ willChange: 'transform' }}>
                 <Image
                     src={src}
                     alt={alt}
@@ -138,6 +121,7 @@ export const TiltCard = ({ src, alt }: TiltCardProps) => {
                     ))}
                 </div>
             </div>
+        </Tilt>
         </div>
     )
 }
