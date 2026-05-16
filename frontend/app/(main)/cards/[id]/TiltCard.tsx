@@ -29,21 +29,18 @@ export const TiltCard = ({ src, alt }: TiltCardProps) => {
     }, [foilEnabled, sheenEnabled])
 
     // Prevent native scroll so Tilt can handle touch movement.
-    // - touch-action: none (on the wrapper) tells the browser at the CSS level
-    //   not to handle any touch gestures — this must be set before touch starts.
-    // - We also block touchstart + touchmove via native listeners with
-    //   { passive: false }, which is required to call preventDefault() at all.
-    //   React touch events are always passive — preventDefault() is silently ignored.
+    // touch-action: none is applied directly to the Tilt component's div (via its
+    // style prop) and to this wrapper. The CSS approach is evaluated before any JS
+    // runs — it's the only reliable way to stop the browser committing to scroll
+    // at touchstart. We still add a non-passive touchmove listener as a fallback,
+    // but do NOT prevent touchstart — doing so causes iOS Safari to suppress
+    // subsequent touchmove events, breaking the tilt entirely.
     useEffect(() => {
         const el = wrapperRef.current
         if (!el) return
         const prevent = (e: TouchEvent) => e.preventDefault()
-        el.addEventListener('touchstart', prevent, { passive: false })
-        el.addEventListener('touchmove',  prevent, { passive: false })
-        return () => {
-            el.removeEventListener('touchstart', prevent)
-            el.removeEventListener('touchmove',  prevent)
-        }
+        el.addEventListener('touchmove', prevent, { passive: false })
+        return () => el.removeEventListener('touchmove', prevent)
     }, [])
 
     const handleMove = ({ tiltAngleY, tiltAngleXPercentage, tiltAngleYPercentage }: { tiltAngleY: number, tiltAngleXPercentage: number, tiltAngleYPercentage: number }) => {
@@ -99,6 +96,7 @@ export const TiltCard = ({ src, alt }: TiltCardProps) => {
             onEnter={handleEnter}
             onMove={handleMove}
             onLeave={handleLeave}
+            style={{ touchAction: 'none' }}
         >
             <div className="relative rounded-2xl overflow-hidden shadow-2xl ring-1 ring-white/15" style={{ willChange: 'transform' }}>
                 <Image
