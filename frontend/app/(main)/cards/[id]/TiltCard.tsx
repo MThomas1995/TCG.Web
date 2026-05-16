@@ -16,15 +16,15 @@ export const TiltCard = ({ src, alt }: TiltCardProps) => {
     const [foilEnabled,  setFoilEnabled]  = useState(true)
     const [sheenEnabled, setSheenEnabled] = useState(true)
 
-    const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    const applyTilt = (clientX: number, clientY: number) => {
         const card  = cardRef.current
         const foil  = foilRef.current
         const sheen = sheenRef.current
         if (!card || !foil || !sheen) return
 
         const rect    = card.getBoundingClientRect()
-        const x       = e.clientX - rect.left
-        const y       = e.clientY - rect.top
+        const x       = clientX - rect.left
+        const y       = clientY - rect.top
         const xPct    = (x / rect.width) * 100
         const yPct    = (y / rect.height) * 100
         const rotateY = ((x / rect.width)  - 0.5) * 24
@@ -51,7 +51,7 @@ export const TiltCard = ({ src, alt }: TiltCardProps) => {
         }
     }
 
-    const handleMouseLeave = () => {
+    const resetTilt = () => {
         const card  = cardRef.current
         const foil  = foilRef.current
         const sheen = sheenRef.current
@@ -62,10 +62,18 @@ export const TiltCard = ({ src, alt }: TiltCardProps) => {
         sheen.style.opacity  = '0'
     }
 
+    const handleMouseMove  = (e: React.MouseEvent<HTMLDivElement>)  => applyTilt(e.clientX, e.clientY)
+    const handleTouchMove  = (e: React.TouchEvent<HTMLDivElement>)  => {
+        e.preventDefault() // stops the page scrolling while tilting
+        applyTilt(e.touches[0].clientX, e.touches[0].clientY)
+    }
+
     return (
         <div
             onMouseMove={handleMouseMove}
-            onMouseLeave={handleMouseLeave}
+            onMouseLeave={resetTilt}
+            onTouchMove={handleTouchMove}
+            onTouchEnd={resetTilt}
             style={{ animation: 'float 5s ease-in-out infinite' }}
         >
             <div
