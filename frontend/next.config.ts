@@ -10,6 +10,7 @@ if (protocol !== 'http' && protocol !== 'https') {
 }
 
 const nextConfig: NextConfig = {
+    allowedDevOrigins: ['192.168.0.159'],
     images: {
         dangerouslyAllowLocalIP: true,
         remotePatterns: [

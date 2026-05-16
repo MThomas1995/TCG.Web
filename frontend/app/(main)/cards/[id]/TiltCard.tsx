@@ -9,19 +9,19 @@ interface TiltCardProps {
     alt: string
 }
 
-const MAX_ANGLE    = 12
-const SPRING       = { stiffness: 400, damping: 30 }
+const MAX_ANGLE = 12
+const SPRING    = { stiffness: 400, damping: 30 }
 
 export const TiltCard = ({ src, alt }: TiltCardProps) => {
     const cardRef  = useRef<HTMLDivElement>(null)
-    const foilRef  = useRef<HTMLDivElement>(null)
-    const sheenRef = useRef<HTMLDivElement>(null)
+    const holoRef  = useRef<HTMLDivElement>(null)
+    const shineRef = useRef<HTMLDivElement>(null)
 
-    const [foilEnabled,  setFoilEnabled]  = useState(true)
-    const [sheenEnabled, setSheenEnabled] = useState(true)
+    const [holoEnabled,  setHoloEnabled]  = useState(true)
+    const [shineEnabled, setShineEnabled] = useState(true)
 
-    // Raw target values (0–1, position within the card).
-    // Springs animate smoothly toward these — giving natural tilt and snap-back.
+    // Normalized position within the card (0–1). Springs animate smoothly
+    // toward these values, giving natural tilt and snap-back on leave.
     const xRaw     = useMotionValue(0.5)
     const yRaw     = useMotionValue(0.5)
     const scaleRaw = useMotionValue(1)
@@ -37,8 +37,8 @@ export const TiltCard = ({ src, alt }: TiltCardProps) => {
         xRaw.set(0.5)
         yRaw.set(0.5)
         scaleRaw.set(1)
-        if (foilRef.current)  foilRef.current.style.opacity  = '0'
-        if (sheenRef.current) sheenRef.current.style.opacity = '0'
+        if (holoRef.current)  holoRef.current.style.opacity  = '0'
+        if (shineRef.current) shineRef.current.style.opacity = '0'
     }
 
     const updateFromPointer = (clientX: number, clientY: number) => {
@@ -53,28 +53,29 @@ export const TiltCard = ({ src, alt }: TiltCardProps) => {
 
         const xN    = x * 100
         const yN    = y * 100
-        const tiltY = (x - 0.5) * 2 * MAX_ANGLE
+        const angleY = (x - 0.5) * 2 * MAX_ANGLE
 
-        if (foilRef.current && foilEnabled) {
+        if (holoRef.current && holoEnabled) {
             const hue = xN * 2.4
-            foilRef.current.style.background = `linear-gradient(
-                ${105 + tiltY * 4}deg,
+            holoRef.current.style.background = `linear-gradient(
+                ${105 + angleY * 4}deg,
                 hsla(${hue},       100%, 65%, 0.25) 0%,
                 hsla(${hue + 60},  100%, 65%, 0.2)  25%,
                 hsla(${hue + 120}, 100%, 65%, 0.25) 50%,
                 hsla(${hue + 180}, 100%, 65%, 0.2)  75%,
                 hsla(${hue + 240}, 100%, 65%, 0.25) 100%
             )`
-            foilRef.current.style.opacity = '1'
+            holoRef.current.style.opacity = '1'
         }
 
-        if (sheenRef.current && sheenEnabled) {
-            sheenRef.current.style.background = `radial-gradient(circle at ${xN}% ${yN}%, rgba(255,255,255,0.45) 0%, rgba(255,255,255,0.05) 40%, transparent 65%)`
-            sheenRef.current.style.opacity = '1'
+        if (shineRef.current && shineEnabled) {
+            // Light source moves opposite to pointer — physically accurate specular highlight.
+            shineRef.current.style.background = `radial-gradient(circle at ${100 - xN}% ${100 - yN}%, rgba(255,255,255,0.45) 0%, rgba(255,255,255,0.05) 40%, transparent 65%)`
+            shineRef.current.style.opacity = '1'
         }
     }
 
-    // Mouse: tilt activates on hover — no click needed.
+    // Mouse: tilt activates on hover, no click needed.
     const onPointerEnter = (e: React.PointerEvent) => {
         if (e.pointerType === 'mouse') scaleRaw.set(1.03)
     }
@@ -88,9 +89,8 @@ export const TiltCard = ({ src, alt }: TiltCardProps) => {
         }
     }
 
-    // Shared move handler for both mouse and touch.
-    // pointermove is non-passive in React — e.preventDefault() actually works,
-    // unlike onTouchMove which is passive and silently ignores it.
+    // Shared move handler for mouse and touch. React's onPointerMove is
+    // non-passive — unlike onTouchMove — so preventDefault() works here.
     const onPointerMove = (e: React.PointerEvent) => {
         if (e.pointerType !== 'mouse') e.preventDefault()
         updateFromPointer(e.clientX, e.clientY)
@@ -113,10 +113,8 @@ export const TiltCard = ({ src, alt }: TiltCardProps) => {
                     rotateY,
                     scale,
                     transformPerspective: 1000,
-                    // CSS-level scroll prevention. pointermove preventDefault handles
-                    // it in JS too, but touch-action: none stops the browser committing
-                    // to a scroll gesture at pointerdown before any JS runs.
                     touchAction: 'none',
+                    userSelect: 'none',
                 }}
                 onPointerEnter={onPointerEnter}
                 onPointerDown={onPointerDown}
@@ -135,12 +133,12 @@ export const TiltCard = ({ src, alt }: TiltCardProps) => {
                         loading="eager"
                     />
                     <div
-                        ref={foilRef}
+                        ref={holoRef}
                         className="absolute inset-0 pointer-events-none mix-blend-color-dodge"
                         style={{ opacity: 0, transition: 'opacity 0.3s ease', borderRadius: 'inherit' }}
                     />
                     <div
-                        ref={sheenRef}
+                        ref={shineRef}
                         className="absolute inset-0 pointer-events-none mix-blend-screen"
                         style={{ opacity: 0, transition: 'opacity 0.2s ease', borderRadius: 'inherit' }}
                     />
@@ -148,17 +146,17 @@ export const TiltCard = ({ src, alt }: TiltCardProps) => {
                     {/* Toggles — pinned to bottom of card */}
                     <div className="absolute bottom-3 right-3 flex gap-2 z-10">
                         {[
-                            { label: 'Foil',  enabled: foilEnabled,  toggle: () => setFoilEnabled(f => !f) },
-                            { label: 'Sheen', enabled: sheenEnabled, toggle: () => setSheenEnabled(s => !s) },
+                            { label: 'Holo',  enabled: holoEnabled,  toggle: () => setHoloEnabled(v => !v)  },
+                            { label: 'Shine', enabled: shineEnabled, toggle: () => setShineEnabled(v => !v) },
                         ].map(({ label, enabled, toggle }) => (
                             <button
                                 key={label}
                                 onClick={toggle}
                                 className="px-2.5 py-1 rounded-md text-xs font-semibold uppercase tracking-widest transition-all"
                                 style={{
-                                    background: enabled ? 'rgba(0,0,0,0.6)' : 'rgba(0,0,0,0.35)',
-                                    border: `1px solid ${enabled ? 'rgba(255,255,255,0.4)' : 'rgba(255,255,255,0.1)'}`,
-                                    color: enabled ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.3)',
+                                    background:    enabled ? 'rgba(0,0,0,0.6)'         : 'rgba(0,0,0,0.35)',
+                                    border:        `1px solid ${enabled ? 'rgba(255,255,255,0.4)' : 'rgba(255,255,255,0.1)'}`,
+                                    color:         enabled ? 'rgba(255,255,255,0.9)'   : 'rgba(255,255,255,0.3)',
                                     backdropFilter: 'blur(6px)',
                                 }}
                             >
