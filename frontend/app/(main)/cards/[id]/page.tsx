@@ -23,7 +23,7 @@ const CardPage = async ({ params }: { params: Promise<{ id: string }> }) => {
 
     return (
         <div
-            className="h-screen flex flex-col items-center justify-center px-6 overflow-hidden"
+            className="min-h-screen flex flex-col items-center justify-center px-6 py-12"
             style={{ background: 'linear-gradient(160deg, #0f2030 0%, #0a1520 50%, #060d12 100%)' }}
         >
             <div className="w-full max-w-sm flex flex-col gap-5">

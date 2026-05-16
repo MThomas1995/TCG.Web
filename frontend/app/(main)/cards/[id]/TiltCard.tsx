@@ -1,7 +1,7 @@
 'use client'
 
 import Image from "next/image"
-import { useRef, useState } from "react"
+import { useRef, useState, useEffect } from "react"
 
 interface TiltCardProps {
     src: string
@@ -62,18 +62,34 @@ export const TiltCard = ({ src, alt }: TiltCardProps) => {
         sheen.style.opacity  = '0'
     }
 
-    const handleMouseMove  = (e: React.MouseEvent<HTMLDivElement>)  => applyTilt(e.clientX, e.clientY)
-    const handleTouchMove  = (e: React.TouchEvent<HTMLDivElement>)  => {
-        e.preventDefault() // stops the page scrolling while tilting
-        applyTilt(e.touches[0].clientX, e.touches[0].clientY)
-    }
+    const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => applyTilt(e.clientX, e.clientY)
+
+    // React touch events are passive by default — preventDefault() is ignored, so the page scrolls.
+    // We attach the touch listener directly to the DOM with { passive: false } to fix this.
+    useEffect(() => {
+        const el = cardRef.current
+        if (!el) return
+
+        const onTouchMove = (e: TouchEvent) => {
+            e.preventDefault()
+            applyTilt(e.touches[0].clientX, e.touches[0].clientY)
+        }
+
+        const onTouchEnd = () => resetTilt()
+
+        el.addEventListener('touchmove', onTouchMove, { passive: false })
+        el.addEventListener('touchend', onTouchEnd)
+
+        return () => {
+            el.removeEventListener('touchmove', onTouchMove)
+            el.removeEventListener('touchend', onTouchEnd)
+        }
+    }, [foilEnabled, sheenEnabled])
 
     return (
         <div
             onMouseMove={handleMouseMove}
             onMouseLeave={resetTilt}
-            onTouchMove={handleTouchMove}
-            onTouchEnd={resetTilt}
             style={{ animation: 'float 5s ease-in-out infinite' }}
         >
             <div
