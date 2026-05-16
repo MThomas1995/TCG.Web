@@ -10,6 +10,7 @@ interface TiltCardProps {
 }
 
 export const TiltCard = ({ src, alt }: TiltCardProps) => {
+    const wrapperRef  = useRef<HTMLDivElement>(null)
     const foilRef     = useRef<HTMLDivElement>(null)
     const sheenRef    = useRef<HTMLDivElement>(null)
     const isHovering  = useRef(false)
@@ -26,6 +27,17 @@ export const TiltCard = ({ src, alt }: TiltCardProps) => {
     useEffect(() => {
         if (!isHovering.current) resetOverlays()
     }, [foilEnabled, sheenEnabled])
+
+    // Prevent native scroll on touch so Tilt can handle touch movement.
+    // React touch events are passive by default — preventDefault() is ignored.
+    // We attach directly to the DOM with { passive: false } to override this.
+    useEffect(() => {
+        const el = wrapperRef.current
+        if (!el) return
+        const prevent = (e: TouchEvent) => e.preventDefault()
+        el.addEventListener('touchmove', prevent, { passive: false })
+        return () => el.removeEventListener('touchmove', prevent)
+    }, [])
 
     const handleMove = ({ tiltAngleY, tiltAngleXPercentage, tiltAngleYPercentage }: { tiltAngleY: number, tiltAngleXPercentage: number, tiltAngleYPercentage: number }) => {
         const foil  = foilRef.current
@@ -66,6 +78,7 @@ export const TiltCard = ({ src, alt }: TiltCardProps) => {
 
     return (
         <div
+            ref={wrapperRef}
             style={{ animation: 'float 5s ease-in-out infinite' }}
             onMouseLeave={handleLeave}
             onTouchEnd={handleLeave}
