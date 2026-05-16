@@ -28,15 +28,22 @@ export const TiltCard = ({ src, alt }: TiltCardProps) => {
         if (!isHovering.current) resetOverlays()
     }, [foilEnabled, sheenEnabled])
 
-    // Prevent native scroll on touch so Tilt can handle touch movement.
-    // React touch events are passive by default — preventDefault() is ignored.
-    // We attach directly to the DOM with { passive: false } to override this.
+    // Prevent native scroll so Tilt can handle touch movement.
+    // - touch-action: none (on the wrapper) tells the browser at the CSS level
+    //   not to handle any touch gestures — this must be set before touch starts.
+    // - We also block touchstart + touchmove via native listeners with
+    //   { passive: false }, which is required to call preventDefault() at all.
+    //   React touch events are always passive — preventDefault() is silently ignored.
     useEffect(() => {
         const el = wrapperRef.current
         if (!el) return
         const prevent = (e: TouchEvent) => e.preventDefault()
-        el.addEventListener('touchmove', prevent, { passive: false })
-        return () => el.removeEventListener('touchmove', prevent)
+        el.addEventListener('touchstart', prevent, { passive: false })
+        el.addEventListener('touchmove',  prevent, { passive: false })
+        return () => {
+            el.removeEventListener('touchstart', prevent)
+            el.removeEventListener('touchmove',  prevent)
+        }
     }, [])
 
     const handleMove = ({ tiltAngleY, tiltAngleXPercentage, tiltAngleYPercentage }: { tiltAngleY: number, tiltAngleXPercentage: number, tiltAngleYPercentage: number }) => {
@@ -79,8 +86,9 @@ export const TiltCard = ({ src, alt }: TiltCardProps) => {
     return (
         <div
             ref={wrapperRef}
-            style={{ animation: 'float 5s ease-in-out infinite' }}
+            style={{ animation: 'float 5s ease-in-out infinite', touchAction: 'none' }}
             onMouseLeave={handleLeave}
+            onTouchStart={handleEnter}
             onTouchEnd={handleLeave}
         >
         <Tilt
