@@ -35,7 +35,7 @@ const CardPage = async ({ params }: { params: Promise<{ id: string }> }) => {
                         style={{ background: 'linear-gradient(135deg, #7c3aed, #0ea5e9)', animation: 'glow-pulse 3s ease-in-out infinite' }}
                     />
                     <TiltCard
-                        src={`${env.NEXT_PUBLIC_TCG_API_URL}${card.imagePath}`}
+                        src={card.imagePath}
                         alt={card.name}
                     />
                 </div>
