@@ -18,6 +18,10 @@ const nextConfig: NextConfig = {
                 protocol,
                 hostname: apiUrl.hostname,
                 port: apiUrl.port
+            },
+            {
+                protocol: 'https',
+                hostname: 'res.cloudinary.com',
             }
         ]
     }
