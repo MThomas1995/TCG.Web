@@ -123,13 +123,13 @@ export const TiltCard = ({ src, alt }: TiltCardProps) => {
                 onPointerUp={onPointerUp}
                 onPointerCancel={resetCard}
             >
-                <div className="relative rounded-2xl overflow-hidden shadow-2xl ring-1 ring-white/15">
+                <div className="relative overflow-hidden shadow-2xl border border-white/20 rounded-lg p-4">
                     <Image
                         src={src}
                         alt={alt}
                         width={400}
-                        height={400}
-                        style={{ width: 'auto', objectFit: 'cover' }}
+                        height={560}
+                        style={{ width: '100%', height: 'auto' }}
                         loading="eager"
                     />
                     <div
